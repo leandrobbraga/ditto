@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 
-use anyhow::Result;
 use clap::{Parser, Subcommand};
-use ditto::{
-    install_config_files, Filesystem, LinuxFilesystem, PacMan, Package, PackageManager, Shell, Snap,
-};
+use ditto::{install_config_files, Filesystem, PacMan, Package, PackageManager, Shell, Snap};
 use serde::Deserialize;
 
 #[derive(Parser, Debug)]
@@ -20,12 +17,12 @@ enum Commands {
     InstallConfig,
 }
 
-fn main() -> Result<()> {
+fn main() {
     let args = Cli::parse();
 
-    let file = std::fs::File::open("packages.json")?;
+    let file = std::fs::File::open("packages.json").unwrap();
 
-    let packages: HashMap<PackageManagers, Vec<Package>> = serde_json::from_reader(file)?;
+    let packages: HashMap<PackageManagers, Vec<Package>> = serde_json::from_reader(file).unwrap();
     let shell = EchoShell {};
 
     match args.command {
@@ -44,8 +41,6 @@ fn main() -> Result<()> {
             install_config_files(&packages, &filesystem)
         }
     };
-
-    Ok(())
 }
 
 #[derive(Deserialize, PartialEq, Eq, Hash, Debug)]
