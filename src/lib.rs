@@ -16,6 +16,9 @@ pub struct LinuxFilesystem;
 pub struct PacMan<S: Shell> {
     shell: S,
 }
+pub struct Snap<S: Shell> {
+    shell: S,
+}
 
 pub trait PackageManager {
     fn install(&self, packages: &[Package]);
@@ -38,10 +41,25 @@ impl<S: Shell> PacMan<S> {
 
 impl<S: Shell> PackageManager for PacMan<S> {
     fn install(&self, packages: &[Package]) {
-        let mut arguments = vec!["-Syyu"];
+        let mut arguments = vec!["-S"];
         arguments.extend(packages.iter().map(|package| &package.name[..]));
 
         self.shell.sudo_run("pacman", &arguments)
+    }
+}
+
+impl<S: Shell> Snap<S> {
+    pub fn new(shell: S) -> Self {
+        Snap { shell }
+    }
+}
+
+impl<S: Shell> PackageManager for Snap<S> {
+    fn install(&self, packages: &[Package]) {
+        let mut arguments = vec!["install"];
+        arguments.extend(packages.iter().map(|package| &package.name[..]));
+
+        self.shell.sudo_run("snap", &arguments)
     }
 }
 
@@ -88,7 +106,7 @@ pub fn install_config_files(packages: &[Package], filesystem: &impl Filesystem) 
 mod test {
     use std::cell::RefCell;
 
-    use crate::{install_config_files, Filesystem, PacMan, Package, PackageManager, Shell};
+    use crate::{install_config_files, Filesystem, PacMan, Package, PackageManager, Shell, Snap};
 
     #[derive(Debug)]
     struct MockShell {
@@ -199,7 +217,23 @@ mod test {
         package_manager.shell.assert_called_once_with(
             true,
             "pacman",
-            &["-Syyu", "fish", "dunst", "alacritty"],
+            &["-S", "fish", "dunst", "alacritty"],
+        )
+    }
+
+    #[test]
+    fn test_snap_install() {
+        let packages = setup_packages();
+
+        let shell = MockShell::new();
+        let package_manager = Snap { shell };
+
+        package_manager.install(&packages);
+
+        package_manager.shell.assert_called_once_with(
+            true,
+            "snap",
+            &["install", "fish", "dunst", "alacritty"],
         )
     }
 
