@@ -13,11 +13,11 @@ pub struct Fish;
 
 pub struct LinuxFilesystem;
 
-pub struct PacMan<S: Shell> {
-    shell: S,
+pub struct PacMan<'a, S: Shell> {
+    shell: &'a S,
 }
-pub struct Snap<S: Shell> {
-    shell: S,
+pub struct Snap<'a, S: Shell> {
+    shell: &'a S,
 }
 
 pub trait PackageManager {
@@ -33,13 +33,13 @@ pub trait Filesystem {
     fn symlink(&self, original: impl AsRef<Path>, link: impl AsRef<Path>);
 }
 
-impl<S: Shell> PacMan<S> {
-    pub fn new(shell: S) -> Self {
+impl<'a, S: Shell> PacMan<'a, S> {
+    pub fn new(shell: &'a S) -> Self {
         PacMan { shell }
     }
 }
 
-impl<S: Shell> PackageManager for PacMan<S> {
+impl<'a, S: Shell> PackageManager for PacMan<'a, S> {
     fn install(&self, packages: &[Package]) {
         let mut arguments = vec!["-S"];
         arguments.extend(packages.iter().map(|package| &package.name[..]));
@@ -48,13 +48,13 @@ impl<S: Shell> PackageManager for PacMan<S> {
     }
 }
 
-impl<S: Shell> Snap<S> {
-    pub fn new(shell: S) -> Self {
+impl<'a, S: Shell> Snap<'a, S> {
+    pub fn new(shell: &'a S) -> Self {
         Snap { shell }
     }
 }
 
-impl<S: Shell> PackageManager for Snap<S> {
+impl<'a, S: Shell> PackageManager for Snap<'a, S> {
     fn install(&self, packages: &[Package]) {
         let mut arguments = vec!["install"];
         arguments.extend(packages.iter().map(|package| &package.name[..]));
@@ -210,7 +210,7 @@ mod test {
         let packages = setup_packages();
 
         let shell = MockShell::new();
-        let package_manager = PacMan { shell };
+        let package_manager = PacMan::new(&shell);
 
         package_manager.install(&packages);
 
@@ -226,7 +226,7 @@ mod test {
         let packages = setup_packages();
 
         let shell = MockShell::new();
-        let package_manager = Snap { shell };
+        let package_manager = Snap::new(&shell);
 
         package_manager.install(&packages);
 
