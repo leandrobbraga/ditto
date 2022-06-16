@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -8,12 +9,16 @@ pub struct Package {
     pub config: Option<PathBuf>,
 }
 
-pub struct Fish {}
+pub struct Fish;
 
-pub struct LinuxFilesystem {}
+pub struct LinuxFilesystem;
+
+pub struct PacMan<S: Shell> {
+    shell: S,
+}
 
 pub trait PackageManager {
-    fn install(&self, packages: &[Package], shell: &impl Shell);
+    fn install(&self, packages: &[Package]);
 }
 
 pub trait Shell {
@@ -25,14 +30,18 @@ pub trait Filesystem {
     fn symlink(&self, original: impl AsRef<Path>, link: impl AsRef<Path>);
 }
 
-pub struct PacMan {}
+impl<S: Shell> PacMan<S> {
+    pub fn new(shell: S) -> Self {
+        PacMan { shell }
+    }
+}
 
-impl PackageManager for PacMan {
-    fn install(&self, packages: &[Package], shell: &impl Shell) {
+impl<S: Shell> PackageManager for PacMan<S> {
+    fn install(&self, packages: &[Package]) {
         let mut arguments = vec!["-Syyu"];
         arguments.extend(packages.iter().map(|package| &package.name[..]));
 
-        shell.sudo_run("pacman", &arguments)
+        self.shell.sudo_run("pacman", &arguments)
     }
 }
 
@@ -182,12 +191,12 @@ mod test {
     fn test_pacman_install() {
         let packages = setup_packages();
 
-        let package_manager = PacMan {};
-        let mocked_shell = MockShell::new();
+        let shell = MockShell::new();
+        let package_manager = PacMan { shell };
 
-        package_manager.install(&packages, &mocked_shell);
+        package_manager.install(&packages);
 
-        mocked_shell.assert_called_once_with(
+        package_manager.shell.assert_called_once_with(
             true,
             "pacman",
             &["-Syyu", "fish", "dunst", "alacritty"],

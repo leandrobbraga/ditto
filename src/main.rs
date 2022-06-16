@@ -25,8 +25,8 @@ fn main() -> Result<()> {
 
     match args.command {
         Commands::InstallPackages => {
-            let pacman = PacMan {};
-            pacman.install(&packages, &shell)
+            let pacman = PacMan::new(shell);
+            pacman.install(&packages)
         }
         Commands::InstallConfig => {
             let filesystem = LinuxFilesystem {};
